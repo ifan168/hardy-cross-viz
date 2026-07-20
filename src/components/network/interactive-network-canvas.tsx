@@ -86,6 +86,10 @@ export function InteractiveNetworkCanvas() {
           zIndex: pipe.id === selectedPipeId || currentRow ? 8 : 1,
           data: {
             pipeName: pipe.name,
+            length: pipe.length,
+            diameter: pipe.diameter,
+            hazenWilliamsC: pipe.hazenWilliamsC,
+            resistance: pipe.resistance,
             flow,
             flowBefore: currentRow?.flowBefore ?? null,
             flowChange: currentRow?.correctionContribution ?? null,
