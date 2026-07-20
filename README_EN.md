@@ -14,7 +14,7 @@ An interactive Hardy Cross water-distribution network balancing visualizer for e
 - Each active pipe displays its flow before correction, flow after correction, and step-specific `Δq`.
 - Direction arrows are drawn directly along every pipe. Negative flow reverses the arrows and turns the pipe red.
 - Pipes in the current loop are highlighted while unrelated pipes are de-emphasized.
-- Detailed per-pipe values for `q`, `S`, `h = Sq|q|`, `2S|q|`, correction, and corrected flow.
+- Detailed per-pipe values for `q`, `S`, `h = S·q·|q|^0.852`, `1.852·S·|q|^0.852`, correction, and corrected flow.
 - Complete iteration history, convergence feedback, and educational tooltips.
 - Responsive desktop and mobile layouts.
 
@@ -26,16 +26,24 @@ The screenshot below shows the first correction of the right loop. P3 gains flow
 
 ## Algorithm
 
-The teaching case uses a quadratic resistance model:
+The teaching case uses the Hazen-Williams equation with a fixed flow exponent of `n = 1.852`. The implementation uses the following signed form so head-loss magnitude and direction are both preserved:
 
 ```text
-h = S · q · |q|
+h = S · q · |q|^(n-1)
+  = S · q · |q|^0.852
+```
+
+Because case flows are expressed in L/s and diameters in mm, the resistance coefficient is calculated directly from pipe length `L`, diameter `D`, and Hazen-Williams coefficient `C`:
+
+```text
+S = 10.67L / [C^1.852 · (D/1000)^4.8704 · 1000^1.852]
 ```
 
 The Hardy Cross correction for each loop is:
 
 ```text
-Δq = -Σh / Σ(2S|q|)
+Δq = -Σh / Σ(n · S · |q|^(n-1))
+   = -Σh / Σ(1.852 · S · |q|^0.852)
 ```
 
 During each iteration, the left and right loops are corrected sequentially. Shared pipes are updated according to each loop's traversal direction. Balancing stops when the residual head-loss sum of every loop is within the configured tolerance.

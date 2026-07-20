@@ -18,6 +18,7 @@ export function IterationCalculationPanel() {
     selectPipe,
     phase,
   } = useSimulation();
+  const exponentMinusOne = (network.exponent - 1).toFixed(3);
 
   return (
     <Panel className="overflow-hidden">
@@ -51,7 +52,7 @@ export function IterationCalculationPanel() {
       {currentStep ? (
         <>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[920px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[1040px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/80">
                   <th scope="col" className="px-4 py-3 text-xs font-medium text-slate-500">管段</th>
@@ -66,14 +67,14 @@ export function IterationCalculationPanel() {
                   </th>
                   <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-slate-500">
                     <span className="inline-flex items-center justify-end gap-1">
-                      h = Sq|q|
+                      h = S·q·|q|<sup>{exponentMinusOne}</sup>
                       <EducationalTooltip label="解释有符号水头损失">
                         先把 q 换算为环路遍历方向；同向为正、反向为负，因此 h 也保留方向符号。
                       </EducationalTooltip>
                     </span>
                   </th>
                   <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-slate-500">
-                    2S|q|
+                    {network.exponent.toFixed(3)}·S·|q|<sup>{exponentMinusOne}</sup>
                   </th>
                   <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-slate-500">
                     本管校正
@@ -118,7 +119,7 @@ export function IterationCalculationPanel() {
                       {formatSigned(row.flowBefore, 3)}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-xs tabular-nums text-slate-500">
-                      {row.resistance.toFixed(4)}
+                      {row.resistance.toFixed(6)}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-xs tabular-nums text-slate-700">
                       {formatSigned(row.signedHeadLoss)}
@@ -156,7 +157,9 @@ export function IterationCalculationPanel() {
               </p>
             </div>
             <div>
-              <p className="text-[11px] text-slate-500">分母 Σ(2S|q|)</p>
+              <p className="text-[11px] text-slate-500">
+                分母 Σ({network.exponent.toFixed(3)}·S·|q|<sup>{exponentMinusOne}</sup>)
+              </p>
               <p className="mt-1 font-mono text-sm font-semibold tabular-nums text-slate-900">
                 {currentStep.derivativeSum.toFixed(5)}
               </p>

@@ -60,9 +60,13 @@ const DEFAULT_TOLERANCE = 0.001;
 const DEFAULT_MAX_ITERATIONS = 50;
 const MIN_DENOMINATOR = 1e-12;
 
-/** 二次阻力模型：h = S·q·|q|，符号表示水头损失方向。 */
-export function calculateSignedHeadLoss(resistance: number, flow: number): number {
-  return resistance * flow * Math.abs(flow);
+/** 海森-威廉有符号水头损失：h = S·q·|q|^(n-1)。 */
+export function calculateSignedHeadLoss(
+  resistance: number,
+  flow: number,
+  exponent: number,
+): number {
+  return resistance * flow * Math.abs(flow) ** (exponent - 1);
 }
 
 /** 计算某环在指定流量状态下的闭合差 Σh。 */
@@ -70,11 +74,16 @@ export function calculateLoopResidual(
   loop: NetworkLoop,
   pipeById: ReadonlyMap<string, NetworkPipe>,
   flows: Readonly<Record<string, number>>,
+  exponent: number,
 ): number {
   return loop.pipes.reduce((sum, reference) => {
     const pipe = requirePipe(pipeById, reference);
     const flow = requireFlow(flows, pipe.id);
-    return sum + reference.direction * calculateSignedHeadLoss(pipe.resistance, flow);
+    return sum + reference.direction * calculateSignedHeadLoss(
+      pipe.resistance,
+      flow,
+      exponent,
+    );
   }, 0);
 }
 
@@ -112,6 +121,7 @@ export function runHardyCross(
         loop,
         pipeById,
         flows,
+        network.exponent,
       );
       flows = { ...calculation.flowsAfter };
       loopCalculations.push(calculation);
@@ -122,7 +132,7 @@ export function runHardyCross(
     const loopResiduals = Object.fromEntries(
       network.loops.map((loop) => [
         loop.id,
-        calculateLoopResidual(loop, pipeById, flows),
+        calculateLoopResidual(loop, pipeById, flows, network.exponent),
       ]),
     );
     const maxLoopImbalance = Math.max(
@@ -160,6 +170,7 @@ function calculateLoopCorrection(
   loop: NetworkLoop,
   pipeById: ReadonlyMap<string, NetworkPipe>,
   currentFlows: Readonly<Record<string, number>>,
+  exponent: number,
 ): LoopCalculation {
   const flowsBefore = { ...currentFlows };
 
@@ -176,8 +187,13 @@ function calculateLoopCorrection(
       signedHeadLoss: calculateSignedHeadLoss(
         pipe.resistance,
         loopOrientedFlow,
+        exponent,
       ),
-      derivative: 2 * pipe.resistance * Math.abs(loopOrientedFlow),
+      // d(S·q·|q|^(n-1))/dq = n·S·|q|^(n-1)。
+      derivative:
+        exponent
+        * pipe.resistance
+        * Math.abs(loopOrientedFlow) ** (exponent - 1),
     };
   });
 
@@ -194,7 +210,7 @@ function calculateLoopCorrection(
     throw new Error(`环路 ${loop.id} 的校正分母为 0，无法继续平差。`);
   }
 
-  // Hardy Cross 二次阻力公式：Δq = -Σh / Σ(2S|q|)。
+  // Hardy Cross 校正公式：Δq = -Σh / Σ(n·S·|q|^(n-1))。
   const correction = -headLossSum / derivativeSum;
   const flowsAfter = { ...flowsBefore };
 
@@ -260,6 +276,10 @@ function requireFlow(
 function validateNetwork(network: NetworkCase): void {
   if (network.nodes.length === 0 || network.pipes.length === 0 || network.loops.length === 0) {
     throw new Error("管网必须至少包含一个节点、一条管段和一个环路。");
+  }
+
+  if (!(network.exponent > 1) || !Number.isFinite(network.exponent)) {
+    throw new Error("水头损失流量指数 n 必须是大于 1 的有限数。");
   }
 
   const nodeIds = new Set(network.nodes.map((node) => node.id));

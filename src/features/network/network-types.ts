@@ -44,6 +44,8 @@ export interface NetworkCase {
   description: string;
   flowUnit: "L/s";
   headLossUnit: "m";
+  /** 水头损失公式 h = S·q·|q|^(n-1) 中的流量指数 n。 */
+  exponent: number;
   nodes: NetworkNode[];
   pipes: NetworkPipe[];
   loops: NetworkLoop[];

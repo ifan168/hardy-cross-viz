@@ -5,7 +5,10 @@ import { useSimulation } from "@/features/simulation/use-simulation";
 import { cn } from "@/lib/utils";
 
 export function DynamicLearningPath() {
-  const { phase, currentStep } = useSimulation();
+  const { phase, currentStep, network } = useSimulation();
+  const denominatorLabel = `${network.exponent.toFixed(3)}·S·|q|^${(
+    network.exponent - 1
+  ).toFixed(3)}`;
 
   const steps = [
     {
@@ -18,10 +21,10 @@ export function DynamicLearningPath() {
       id: "correction",
       title: "逐环计算与校正",
       description: phase === "completed"
-        ? "??????????????"
+        ? "所有环路校正完成，结果已收敛"
         : currentStep
-        ? `正在观察第 ${currentStep.iteration} 轮 ${currentStep.loopName}`
-        : "计算 Σh、2S|q| 与 Δq",
+          ? `正在观察第 ${currentStep.iteration} 轮 ${currentStep.loopName}`
+          : `计算 Σh、${denominatorLabel} 与 Δq`,
       state: phase === "running" ? "active" : phase === "completed" ? "done" : "pending",
     },
     {
