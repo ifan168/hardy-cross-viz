@@ -189,9 +189,9 @@ export function InteractiveNetworkCanvas() {
               </EducationalTooltip>
             </span>
             <span className="flex items-center gap-1 text-slate-500">
-              S <b className="font-medium tabular-nums text-slate-800">{selectedPipe.resistance.toFixed(4)}</b>
+              S <b className="font-medium tabular-nums text-slate-800">{selectedPipe.resistance.toFixed(6)}</b>
               <EducationalTooltip label="解释阻力系数 S">
-                本案例把管长、管径和 C 值折算为二次阻力系数 S，并采用 h = S·q·|q|。
+                本案例按海森-威廉公式由管长、管径和 C 值计算 S，并采用 n = {network.exponent.toFixed(3)}、h = S·q·|q|^{(network.exponent - 1).toFixed(3)}。
               </EducationalTooltip>
             </span>
             <span className="ml-auto font-semibold tabular-nums text-sky-700">

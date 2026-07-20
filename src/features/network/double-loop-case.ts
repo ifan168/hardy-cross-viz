@@ -1,11 +1,37 @@
 import type { NetworkCase } from "./network-types";
 
+/** 海森-威廉公式的流量指数。 */
+export const HAZEN_WILLIAMS_EXPONENT = 1.852;
+
+/**
+ * 按 SI 制海森-威廉公式计算阻力系数 S。
+ *
+ * 输入流量采用 L/s，因此需把 q/1000 换算成 m³/s：
+ * h = S·q^1.852，S = 10.67L / (C^1.852·D^4.8704·1000^1.852)。
+ */
+export function calculateHazenWilliamsResistance(
+  lengthMeters: number,
+  diameterMillimeters: number,
+  hazenWilliamsC: number,
+): number {
+  const diameterMeters = diameterMillimeters / 1000;
+
+  return (
+    (10.67 * lengthMeters)
+    / (
+      hazenWilliamsC ** HAZEN_WILLIAMS_EXPONENT
+      * diameterMeters ** 4.8704
+      * 1000 ** HAZEN_WILLIAMS_EXPONENT
+    )
+  );
+}
+
 /**
  * 经典双环教学案例。
  *
  * 初始流量满足所有节点的连续性方程，便于把教学重点放在环路能量平衡上。
- * S 为根据管长、管径及海森-威廉系数在初始工况附近折算的二次阻力系数，
- * 算法采用 h = S·q·|q|，因此负流量会自然产生反向水头损失。
+ * S 由管长、管径及海森-威廉系数直接计算，流量指数 n = 1.852。
+ * 有符号形式 h = S·q·|q|^0.852 让负流量自然产生反向水头损失。
  */
 export const doubleLoopCase: NetworkCase = {
   id: "classic-double-loop",
@@ -13,6 +39,7 @@ export const doubleLoopCase: NetworkCase = {
   description: "1 个水源、5 个用水节点、7 条管段和 2 个相邻环路",
   flowUnit: "L/s",
   headLossUnit: "m",
+  exponent: HAZEN_WILLIAMS_EXPONENT,
   nodes: [
     { id: "R", name: "水源 R", demand: -90, position: { x: 20, y: 240 }, kind: "source" },
     { id: "A", name: "节点 A", demand: 10, position: { x: 250, y: 240 }, kind: "junction" },
@@ -33,7 +60,7 @@ export const doubleLoopCase: NetworkCase = {
       length: 500,
       diameter: 300,
       hazenWilliamsC: 120,
-      resistance: 0.0008,
+      resistance: calculateHazenWilliamsResistance(500, 300, 120),
       initialFlow: 90,
     },
     {
@@ -47,7 +74,7 @@ export const doubleLoopCase: NetworkCase = {
       length: 800,
       diameter: 250,
       hazenWilliamsC: 120,
-      resistance: 0.0016,
+      resistance: calculateHazenWilliamsResistance(800, 250, 120),
       initialFlow: 50,
     },
     {
@@ -61,7 +88,7 @@ export const doubleLoopCase: NetworkCase = {
       length: 600,
       diameter: 200,
       hazenWilliamsC: 120,
-      resistance: 0.0045,
+      resistance: calculateHazenWilliamsResistance(600, 200, 120),
       initialFlow: 10,
     },
     {
@@ -75,7 +102,7 @@ export const doubleLoopCase: NetworkCase = {
       length: 900,
       diameter: 250,
       hazenWilliamsC: 120,
-      resistance: 0.0019,
+      resistance: calculateHazenWilliamsResistance(900, 250, 120),
       initialFlow: 30,
     },
     {
@@ -89,7 +116,7 @@ export const doubleLoopCase: NetworkCase = {
       length: 800,
       diameter: 250,
       hazenWilliamsC: 120,
-      resistance: 0.0019,
+      resistance: calculateHazenWilliamsResistance(800, 250, 120),
       initialFlow: 35,
     },
     {
@@ -103,7 +130,7 @@ export const doubleLoopCase: NetworkCase = {
       length: 600,
       diameter: 200,
       hazenWilliamsC: 120,
-      resistance: 0.0041,
+      resistance: calculateHazenWilliamsResistance(600, 200, 120),
       initialFlow: 20,
     },
     {
@@ -117,7 +144,7 @@ export const doubleLoopCase: NetworkCase = {
       length: 900,
       diameter: 200,
       hazenWilliamsC: 120,
-      resistance: 0.0068,
+      resistance: calculateHazenWilliamsResistance(900, 200, 120),
       initialFlow: 10,
     },
   ],

@@ -7,6 +7,7 @@ import { useSimulation } from "@/features/simulation/use-simulation";
 
 export function SimulationControlPanel() {
   const {
+    network,
     phase,
     stepIndex,
     result,
@@ -16,6 +17,7 @@ export function SimulationControlPanel() {
     showResult,
     reset,
   } = useSimulation();
+  const exponentMinusOne = (network.exponent - 1).toFixed(3);
 
   const statusLabel = phase === "idle"
     ? "尚未开始"
@@ -112,11 +114,12 @@ export function SimulationControlPanel() {
           <div className="flex items-center gap-1.5 font-medium">
             校正公式
             <EducationalTooltip label="解释 Hardy Cross 校正公式" side="left">
-              闭合差 Σh 越大，需要的流量校正越明显；负号使校正方向抵消当前闭合差。
+              海森-威廉指数 n = {network.exponent.toFixed(3)}；闭合差 Σh 越大，需要的流量校正越明显，负号使校正方向抵消当前闭合差。
             </EducationalTooltip>
           </div>
           <p className="mt-1 font-mono text-[11px] tabular-nums">
-            Δq = −Σh / Σ(2S|q|)
+            Δq = −Σh / Σ({network.exponent.toFixed(3)}·S·|q|
+            <sup>{exponentMinusOne}</sup>)
           </p>
         </div>
       </PanelContent>
