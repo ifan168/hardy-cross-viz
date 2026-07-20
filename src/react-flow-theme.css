@@ -1,0 +1,31 @@
+/* React Flow 控件与系统卡片保持一致，画布本身仍保持轻量。 */
+.react-flow__controls {
+  overflow: hidden;
+  border: 1px solid rgb(226 232 240);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 14px rgb(15 23 42 / 0.08);
+}
+
+.react-flow__controls-button {
+  border-bottom-color: rgb(226 232 240);
+  background: rgb(255 255 255 / 0.95);
+  color: #475569;
+}
+
+.react-flow__controls-button:hover {
+  background: #f0f9ff;
+}
+
+.react-flow__minimap {
+  overflow: hidden;
+  border: 1px solid rgb(226 232 240);
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 0.92);
+  box-shadow: 0 4px 14px rgb(15 23 42 / 0.06);
+}
+
+@media (max-width: 640px) {
+  .react-flow__minimap {
+    display: none;
+  }
+}
