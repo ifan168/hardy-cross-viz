@@ -5,9 +5,14 @@ import {
   type Edge,
   type EdgeProps,
 } from "@xyflow/react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 export interface PipeEdgeData extends Record<string, unknown> {
   pipeName: string;
+  length: number;
+  diameter: number;
+  hazenWilliamsC: number;
+  resistance: number;
   flow: number;
   flowBefore: number | null;
   flowChange: number | null;
@@ -22,6 +27,123 @@ export interface PipeEdgeData extends Record<string, unknown> {
 }
 
 export type PipeEdgeType = Edge<PipeEdgeData, "pipeEdge">;
+
+interface DirectionArrow {
+  x: number;
+  y: number;
+  angle: number;
+}
+
+const DIRECTION_ARROW_POSITIONS = [0.2, 0.4, 0.6, 0.8];
+const CORRECTION_LABEL_HORIZONTAL_DISTANCE = 116;
+const CORRECTION_LABEL_VERTICAL_DISTANCE = 88;
+
+/** 校正卡片变宽、变高后，只沿原标签的主要偏移方向增加安全距离。 */
+function getLabelOffset(
+  offsetX: number,
+  offsetY: number,
+  expanded: boolean,
+): { x: number; y: number } {
+  if (!expanded) return { x: offsetX, y: offsetY };
+
+  if (Math.abs(offsetX) >= Math.abs(offsetY) && offsetX !== 0) {
+    return {
+      x: Math.sign(offsetX) * Math.max(
+        Math.abs(offsetX),
+        CORRECTION_LABEL_HORIZONTAL_DISTANCE,
+      ),
+      y: offsetY,
+    };
+  }
+
+  if (offsetY !== 0) {
+    return {
+      x: offsetX,
+      y: Math.sign(offsetY) * Math.max(
+        Math.abs(offsetY),
+        CORRECTION_LABEL_VERTICAL_DISTANCE,
+      ),
+    };
+  }
+
+  return { x: offsetX, y: offsetY };
+}
+
+/**
+ * 根据 SVG 路径在多个位置计算切线方向，再绘制真正旋转的三角箭头。
+ * 不能使用文字字符充当箭头，否则浏览器在竖直管段上可能仍按横向字形显示。
+ */
+function FlowDirectionArrows({
+  path,
+  color,
+  reversed,
+  opacity,
+}: {
+  path: string;
+  color: string;
+  reversed: boolean;
+  opacity: number;
+}) {
+  const pathRef = useRef<SVGPathElement>(null);
+  const [arrows, setArrows] = useState<DirectionArrow[]>([]);
+
+  useLayoutEffect(() => {
+    const pathElement = pathRef.current;
+    if (!pathElement) return;
+
+    const totalLength = pathElement.getTotalLength();
+    const tangentSample = Math.min(2, totalLength * 0.01);
+
+    setArrows(
+      DIRECTION_ARROW_POSITIONS.map((position) => {
+        const distance = totalLength * position;
+        const point = pathElement.getPointAtLength(distance);
+        const before = pathElement.getPointAtLength(
+          Math.max(0, distance - tangentSample),
+        );
+        const after = pathElement.getPointAtLength(
+          Math.min(totalLength, distance + tangentSample),
+        );
+        const tangentAngle = Math.atan2(
+          after.y - before.y,
+          after.x - before.x,
+        ) * 180 / Math.PI;
+
+        return {
+          x: point.x,
+          y: point.y,
+          angle: tangentAngle + (reversed ? 180 : 0),
+        };
+      }),
+    );
+  }, [path, reversed]);
+
+  return (
+    <>
+      <path ref={pathRef} d={path} fill="none" stroke="none" aria-hidden="true" />
+      <g
+        aria-hidden="true"
+        fill={color}
+        stroke="white"
+        strokeWidth={2.5}
+        strokeLinejoin="round"
+        style={{
+          opacity,
+          pointerEvents: "none",
+          transition: "fill 280ms ease, opacity 180ms ease",
+        }}
+      >
+        {arrows.map((arrow, index) => (
+          <path
+            key={`${index}-${arrow.x}-${arrow.y}`}
+            d="M -6 -5 L 7 0 L -6 5 Z"
+            transform={`translate(${arrow.x} ${arrow.y}) rotate(${arrow.angle})`}
+          />
+        ))}
+      </g>
+    </>
+  );
+}
 
 function formatFlow(value: number): string {
   const sign = value < 0 ? "−" : "";
@@ -58,11 +180,17 @@ export function PipeEdge({
   if (!data) return null;
 
   const reversed = data.flow < 0;
-  const directionPathId = `flow-direction-${id}`;
   const hasCorrection =
     data.isInCurrentStep && data.flowBefore !== null && data.flowChange !== null;
   const isIncrease = (data.flowChange ?? 0) >= 0;
   const isDimmed = data.hasCurrentStep && !data.isInCurrentStep && !data.selected;
+  const labelOffset = getLabelOffset(
+    data.labelOffsetX,
+    data.labelOffsetY,
+    hasCorrection,
+  );
+  const accessibleParameters =
+    `，长度 ${data.length} m，管径 ${data.diameter} mm，海森-威廉系数 ${data.hazenWilliamsC}，阻力系数 ${data.resistance.toFixed(6)}`;
   const accessibleCorrection = hasCorrection
     ? `，校正前 ${formatFlow(data.flowBefore!)}，${isIncrease ? "增加" : "减少"} ${Math.abs(data.flowChange!).toFixed(3)} ${data.flowUnit}，校正后 ${formatFlow(data.flow)}`
     : `，当前流量 ${formatFlow(data.flow)} ${data.flowUnit}`;
@@ -82,38 +210,18 @@ export function PipeEdge({
           transition: "stroke 280ms ease, stroke-width 180ms ease, opacity 180ms ease",
         }}
       />
-      {/* 箭头沿真实管线路径排布；负流量时整体反向，不再依赖文字解释流向。 */}
-      <path id={directionPathId} d={edgePath} fill="none" stroke="none" aria-hidden="true" />
-      <text
-        aria-hidden="true"
-        fill={data.color}
-        stroke="white"
-        strokeWidth={3.5}
-        paintOrder="stroke"
-        fontSize={17}
-        fontWeight={700}
-        style={{
-          opacity: isDimmed ? 0.22 : 1,
-          pointerEvents: "none",
-          transition: "fill 280ms ease, opacity 180ms ease",
-        }}
-      >
-        <textPath
-          href={`#${directionPathId}`}
-          startOffset="50%"
-          textAnchor="middle"
-          dominantBaseline="central"
-          letterSpacing={10}
-        >
-          {reversed ? "◀ ◀ ◀" : "▶ ▶ ▶"}
-        </textPath>
-      </text>
+      <FlowDirectionArrows
+        path={edgePath}
+        color={data.color}
+        reversed={reversed}
+        opacity={isDimmed ? 0.22 : 1}
+      />
       <EdgeLabelRenderer>
         <button
           type="button"
           onClick={() => data.onSelect(id)}
           className={`nodrag nopan absolute whitespace-nowrap rounded-lg border text-left shadow-sm backdrop-blur transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 ${
-            hasCorrection ? "min-w-[136px] px-3 py-2" : "px-2.5 py-1.5"
+            hasCorrection ? "min-w-[196px] px-3 py-2" : "min-w-[184px] px-3 py-2"
           } ${
             reversed
               ? "border-rose-300 bg-rose-50/95 text-rose-900"
@@ -126,12 +234,18 @@ export function PipeEdge({
             isDimmed ? "opacity-50" : "opacity-100"
           }`}
           style={{
-            transform: `translate(-50%, -50%) translate(${labelX + data.labelOffsetX}px, ${labelY + data.labelOffsetY}px)`,
+            transform: `translate(-50%, -50%) translate(${labelX + labelOffset.x}px, ${labelY + labelOffset.y}px)`,
           }}
-          aria-label={`选择${data.pipeName}${accessibleCorrection}${reversed ? "，方向已反转" : ""}`}
+          aria-label={`选择${data.pipeName}${accessibleParameters}${accessibleCorrection}${reversed ? "，方向已反转" : ""}`}
         >
           <span className="block text-[10px] font-semibold leading-none">
             {data.pipeName}
+          </span>
+          <span className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 border-t border-slate-200/80 pt-1.5 font-mono text-[9px] leading-none tabular-nums text-slate-500">
+            <span>L <b className="font-medium text-slate-700">{data.length} m</b></span>
+            <span>D <b className="font-medium text-slate-700">{data.diameter} mm</b></span>
+            <span>C <b className="font-medium text-slate-700">{data.hazenWilliamsC}</b></span>
+            <span>S <b className="font-medium text-slate-700">{data.resistance.toFixed(6)}</b></span>
           </span>
           {hasCorrection ? (
             <>
@@ -153,8 +267,8 @@ export function PipeEdge({
               </span>
             </>
           ) : (
-            <span className="mt-1 flex items-center gap-1 text-[11px] font-medium leading-none tabular-nums">
-              {formatFlow(data.flow)} {data.flowUnit}
+            <span className="mt-1.5 flex items-center gap-1 font-mono text-[11px] font-semibold leading-none tabular-nums text-slate-800">
+              q {formatFlow(data.flow)} {data.flowUnit}
             </span>
           )}
         </button>

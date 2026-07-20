@@ -13,8 +13,9 @@ An interactive Hardy Cross water-distribution network balancing visualizer for e
 - A classic double-loop teaching case with node demands, pipe lengths, diameters, Hazen-Williams coefficients, and resistance coefficients.
 - A Hardy Cross flow-correction engine that preserves every iteration and loop calculation.
 - Four teaching controls: Start, Next Step, Show Result, and Reset.
+- Pipe parameter cards directly list length `L`, diameter `D`, Hazen-Williams coefficient `C`, resistance coefficient `S`, and current flow `q`.
 - Each active pipe displays its flow before correction, flow after correction, and step-specific `Δq`.
-- Direction arrows are drawn directly along every pipe. Negative flow reverses the arrows and turns the pipe red.
+- Direction arrows follow each pipe's path tangent, so vertical and curved pipes keep the correct orientation. Negative flow reverses the arrows and turns the pipe red.
 - Pipes in the current loop are highlighted while unrelated pipes are de-emphasized.
 - Detailed per-pipe values for `q`, `S`, `h = S·q·|q|^0.852`, `1.852·S·|q|^0.852`, correction, and corrected flow.
 - Complete iteration history, convergence feedback, and educational tooltips.
