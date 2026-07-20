@@ -4,6 +4,8 @@
 
 一个面向环境工程、给排水科学与工程专业教学的 Hardy Cross 给水环网平差可视化应用。系统不仅给出最终结果，还将每一次环路校正、每条管段的流量增减和流向变化直接呈现在拓扑图上。
 
+**在线体验：[https://ifan168.github.io/hardy-cross-viz/](https://ifan168.github.io/hardy-cross-viz/)**
+
 ![初始双环管网](docs/screenshots/initial-network.png)
 
 ## 主要功能

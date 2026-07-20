@@ -4,6 +4,8 @@ English | [简体中文](README.md)
 
 An interactive Hardy Cross water-distribution network balancing visualizer for environmental engineering and water supply/drainage education. Instead of showing only the converged result, the application visualizes every loop correction, every pipe-flow change, and every flow-direction update.
 
+**Live demo: [https://ifan168.github.io/hardy-cross-viz/](https://ifan168.github.io/hardy-cross-viz/)**
+
 ![Initial double-loop network](docs/screenshots/initial-network.png)
 
 ## Features
